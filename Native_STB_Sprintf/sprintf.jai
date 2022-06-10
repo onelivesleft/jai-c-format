@@ -216,7 +216,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
         }
     }
 
-    for fmt: ever {
+    while fmt := true {
         fw,pr,tz : s32;
         fl: u32;
 
@@ -261,7 +261,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
 
         // fast copy everything up to the next % (or end of string)
         // @Note code duplicated to replace `goto` optimizations.  Could be deduplicated with a macro or w/e.
-        for scandd: ever {
+        while scandd := true {
             while (cast,no_check(u64)f) & 3 {
                 if <<f == #char "%"   break scandd;
                 if <<f == #char "\0"  break fmt;
@@ -313,7 +313,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
         fw = 0; pr = -1; fl = 0; tz = 0;
 
         // flags
-        for flags: ever {
+        while flags := true {
             if <<f == {
                 // if we have left justify
                 case #char "-"; fl |= STBSP__LEFTJUST; f += 1;
@@ -426,7 +426,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
 
         // @Note each of these `#code` blocks come from labelled sections with
         //       multiple entry points (i.e. `goto`s)  The original C is performant
-        //       spaghetti.  Please sign my `no goto in jai` petition today!
+        //       spaghetti.
 
         scopy :: #code {
             // get fw=leading/trailing space, pr=leading zeros
@@ -714,7 +714,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
 
             n = cast,no_check(u32) ifx dp >= 1000 then 6 else (ifx dp >= 100 then 5 else (ifx dp >= 10 then 4 else 3));
             tail[0] = cast,no_check(u8)n;
-            for ever {
+            while true {
                 tail[n] = cast,no_check(u8)(#char "0" + (dp % 10));
                 if n <= 3  break;
                 n -= 1;
@@ -836,7 +836,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
                 }
                 n = cast,no_check(u32) ifx dp >= 100 then 5 else 4;
                 tail[0] = cast,no_check(u8)n;
-                for ever {
+                while true {
                     tail[n] = cast,no_check(u8)(#char "0" + (dp % 10));
                     if n <= 3  break;
                     n -= 1;
@@ -949,7 +949,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
                     if cast,no_check(u32)dp >= l {
                         // handle xxxx000*000.0
                         n = 0;
-                        for ever {
+                        while true {
                             if fl & STBSP__TRIPLET_COMMA {
                                 cs += 1;
                                 if cs == 4 {
@@ -1021,7 +1021,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
                     {
                         // handle xxxxx.xxxx000*000
                         n = 0;
-                        for ever {
+                        while true {
                             if (fl & STBSP__TRIPLET_COMMA) {
                                 cs += 1;
                                 if cs == 4 {
@@ -1117,7 +1117,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
             }
 
             // convert to string
-            for ever {
+            while true {
                 s -= 1;
                 <<s = <<(h + n64 & cast,no_check(u64)((1 << (l >> 8)) - 1));
                 n64 >>= l >> 8;
@@ -1172,7 +1172,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
                     if count < 0 {
                         sn = s;
 
-                        for ever {
+                        while true {
                             if ((cast,no_check(u64)sn) & 3) == 0 {
                                 n = 0xffffffff;
                                 if pr >= 0 {
@@ -1354,7 +1354,7 @@ sprintfcb :: (callback: *Sprintf_Callback, user: *void, buf: *u8, fmt: *u8, va: 
                 s = *num[0] + STBSP__NUMSZ;
                 l=0;
 
-                for ever {
+                while true {
                     // do in 32-bit chunks (avoid lots of 64-bit divides even with constant denominators)
                     o : *u8 = s - 8;
                     if n64 >= 100000000 {
@@ -1480,14 +1480,6 @@ kmgt :: "_kmgt";
 stbsp__period : u8 = #char ".";
 stbsp__comma  : u8 = #char ",";
 stbsp__digitpair :: "00010203040506070809101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899";
-
-
-// @Note using this `for ever` instead of `while true` because `while` can't be labelled
-ever : struct{}
-for_expansion :: (_: *type_of(ever), body: Code, flags: For_Flags) #expand {
-    `it, `it_index := 0, 0;
-    while true { #insert body; }
-}
 
 
 stbsp__context :: struct {
@@ -1795,7 +1787,7 @@ stbsp__real_to_str :: (start: **u8, len: *u32, out: *u8, decimal_pos: *s32, valu
     // kill long trailing runs of zeros
     if bits {
         done_killing := false;
-        for ever {
+        while true {
             if bits <= 0xffffffff  break;
             if bits % 1000 {
                 done_killing = true;
@@ -1814,7 +1806,7 @@ stbsp__real_to_str :: (start: **u8, len: *u32, out: *u8, decimal_pos: *s32, valu
     // convert to string
     out += 64;
     e = 0;
-    for ever {
+    while true {
         n : u32 = ---;
         o := out - 8;
         // do the conversion in chunks of U32s (avoid most 64-bit divides, worth it, constant denomiators be damned)
